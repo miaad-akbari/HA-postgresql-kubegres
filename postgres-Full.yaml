@@ -1,0 +1,124 @@
+
+ kind: StorageClass
+ apiVersion:  storage.k8s.io/v1
+ metadata:
+   name: heketi-storage
+   namespace: kubegres-system
+ provisioner: kubernetes.io/glusterfs
+ reclaimPolicy: Delete
+ volumeBindingMode: Immediate
+ allowVolumeExpansion: true
+ parameters:
+   resturl: "ip"
+   restuser: "admin"
+   restuserkey: "admin"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+ name: claim1
+ namespace: kubegres-system
+ annotations:
+   volume.beta.kubernetes.io/storage-class:  heketi-storage
+spec:
+  storageClassName: heketi-storage
+  accessModes:
+  - ReadWriteMany
+  resources:
+   requests:
+        storage: 1Gi
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mypostgres-secret
+  namespace: kubegres-system
+type: Opaque
+stringData:
+  superUserPassword: postgresSuperUserPsw
+  replicationUserPassword: postgresReplicaPsw
+  S3_BUCKET: "url-s3"
+  ACCESS_KEY: key
+  SECRET_KEY:  key
+  BUCKET: s3://bucket-name
+
+---
+apiVersion: kubegres.reactive-tech.io/v1
+kind: Kubegres
+metadata:
+  name: mypostgres
+  namespace: kubegres-system
+spec:
+   replicas: 3
+   image: postgres:14.1
+   database:
+      size: 1Gi
+      storageClassName:  heketi-storage
+      volumeMount: /var/lib/backup
+
+
+   backup:
+     schedule: "* 1 * * *"
+     pvcName: claim1
+     volumeMount: /var/lib/backup
+
+   volume:
+
+     volumeMounts:
+     - name: postgres
+       mountPath: /var/lib/postgresql/test
+
+     volumes:
+       - name: postgres
+         persistentVolumeClaim:
+           claimName: claim1
+   env:
+      - name: S3_BUCKET
+        valueFrom:
+          secretKeyRef:
+            name: mypostgres-secret
+            key: S3_BUCKET
+      - name: ACCESS
+        valueFrom:
+          secretKeyRef:
+            name: mypostgres-secret
+            key: ACCESS_KEY
+      - name: SECRET
+        valueFrom:
+          secretKeyRef:
+            name: mypostgres-secret
+            key: SECRET_KEY
+      - name: BUCKET
+        valueFrom:
+          secretKeyRef:
+            name: mypostgres-secret
+            key: BUCKET
+      - name: POSTGRES_PASSWORD
+        valueFrom:
+           secretKeyRef:
+              name: mypostgres-secret
+              key: superUserPassword
+
+
+      - name: POSTGRES_REPLICATION_PASSWORD
+        valueFrom:
+           secretKeyRef:
+              name: mypostgres-secret
+              key: replicationUserPassword
+
+
+---
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRouteTCP
+metadata:
+  name: mypostgres
+  namespace: kubegres-system
+spec:
+  entryPoints:
+    - mypostgres
+  routes:
+   -  match: HostSNI(`*`)
+      services:
+        - name: mypostgres
+          port: 5432
+

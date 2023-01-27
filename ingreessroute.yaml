@@ -1,0 +1,13 @@
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRouteTCP
+metadata:
+  name: mypostgres
+  namespace: kubegres-system
+spec:
+  entryPoints:
+    - mypostgres
+  routes:
+   -  match: HostSNI(`*`)
+      services:
+        - name: mypostgres
+          port: 5432

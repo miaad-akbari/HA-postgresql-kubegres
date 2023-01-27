@@ -1,0 +1,28 @@
+ kind: StorageClass
+ apiVersion:  storage.k8s.io/v1
+ metadata:
+   name: heketi-storage
+   namespace: kubegres-system
+ provisioner: kubernetes.io/glusterfs
+ reclaimPolicy: Delete
+ volumeBindingMode: Immediate
+ allowVolumeExpansion: true
+ parameters:
+   resturl: "ip"
+   restuser: "admin"
+   restuserkey: "admin"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+ name: claim1
+ namespace: kubegres-system
+ annotations:
+   volume.beta.kubernetes.io/storage-class:  heketi-storage
+spec:
+  storageClassName: heketi-storage
+  accessModes:
+  - ReadWriteMany
+  resources:
+   requests:
+        storage: 1Gi
