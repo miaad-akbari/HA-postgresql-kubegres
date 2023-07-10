@@ -5,14 +5,14 @@ Prerequisites
 
 Before deploying the resources, you should ensure that you have the following prerequisites installed:
 
-    A Kubernetes cluster with Kubegres and Traefik installed
-    A GlusterFS-based storage class configured in the cluster
+A Kubernetes cluster with Kubegres and Traefik installed
+A GlusterFS-based storage class configured in the cluster
 
 Usage
 
 To deploy the resources, run the following command:
 
-kubectl apply -f kubegres-postgres.yaml
+    kubectl apply -f kubegres-postgres.yaml
 
 Replace kubegres-postgres.yaml with the name of the manifest file.
 Customization
